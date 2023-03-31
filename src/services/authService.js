@@ -43,6 +43,7 @@ const loginService = async (
 ) => {
 
     const user = await userService.findUserByProperty('email', email);
+
     if (!user) throw error('Email or password do not match', 400);
 
     const isMatch = authHelper.comparePassword({password, hash: user.password});
@@ -52,15 +53,20 @@ const loginService = async (
     if (user?.status !== 'active') throw error('Your account is not active. please contact Administrator', 400);
 
     const payload = {
-        email: user.email,
         _id: user._id,
+        email: user.email,
+        mobile: user.mobile,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
-        mobile: user.mobile,
         status: user.status,
-        verified: user.verified
+        verified: user.verified,
+        role: {
+            _id: user.role._id,
+            name: user.role.name
+        },
+        permissions: user.permissions
     }
+
     return authHelper.createToken(payload);
 
 }

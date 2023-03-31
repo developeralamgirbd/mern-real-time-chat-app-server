@@ -2,17 +2,25 @@ const User = require("../models/User");
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
 
-const findUserByProperty = (key, value, projection = null) => {
-    if (key === '_id') {
-        if (projection !== null){
-            return User.findById(value, projection).populate('roleId');
-        }
-        return User.findById(value).populate('roleId');
-    }
+const findUserByProperty = async (key, value, projection = null) => {
     if (projection !== null){
-        return User.findOne({ [key]: value }, projection).populate('roleId');
+        const user = await User.aggregate([
+            {$match: {[key]: value}},
+            {$lookup: {from: 'roles', localField: 'roleId', foreignField: '_id', as: 'role'}},
+            {$unwind: '$role'},
+            {$lookup: {from: 'permissions', localField: 'role.permissions', foreignField: '_id', as: 'permissions'}},
+            {$project: projection}
+        ]);
+        return user[0]
     }
-    return User.findOne({ [key]: value }).populate('roleId');
+
+    const user = await User.aggregate([
+        {$match: {[key]: value}},
+        {$lookup: {from: 'roles', localField: 'roleId', foreignField: '_id', as: 'role'}},
+        {$unwind: '$role'},
+        {$lookup: {from: 'permissions', localField: 'role.permissions', foreignField: '_id', as: 'permissions'}},
+    ]);
+    return user[0]
 };
 
 const createNewUser = (
